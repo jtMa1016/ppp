@@ -4,23 +4,6 @@
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>lucklyjkop（禁止二改二创面板）</title>
-    <script>
-      (function () {
-        try {
-          var noop = function () {};
-          if (window.performance) {
-            window.performance.mark = noop;
-            window.performance.measure = noop;
-            // 清理已有的缓存
-            if (window.performance.clearMarks) window.performance.clearMarks();
-            if (window.performance.clearMeasures) window.performance.clearMeasures();
-          }
-          console.log('已拦截 Performance API，防止内存泄漏。');
-        } catch (e) {
-          /* 忽略错误 */
-        }
-      })();
-    </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet" />
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leancloud-storage/dist/av-min.js"></script>
@@ -12145,8 +12128,15 @@ border: 1px solid rgba(255, 255, 255, 0.05);
     </style>
   </head>
   <body class="theme-night">
-    <!-- 给 div 加上 style 属性作为静态背景 -->
-   <div id="splash-screen" style="background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);">
+    <div id="splash-screen">
+      <video
+        autoplay=""
+        id="splash-video-bg"
+        loop=""
+        muted=""
+        playsinline=""
+        src="https://s3plus.meituan.net/opapisdk/op_ticket_885190757_1752805008624_qdqqd_3tw59r.mp4"
+      ></video>
       <div id="splash-content">
         <h1 id="splash-title">凡人修仙传</h1>
         <p id="splash-info">作者: LUCKLYJKOP | 版本: 10.91 | 沉浸式的修仙文字世界</p>
@@ -30867,7 +30857,9 @@ return equippedItems.length > 0 ? equippedItems.join(', ') : '无';
 
           // --- 1. 准备画布 ---
           const ctx = canvas.getContext('2d');
-          const dpr = window.devicePixelRatio || 1;
+          // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
           const rect = canvas.getBoundingClientRect();
 
           if (canvas.width !== rect.width * dpr || canvas.height !== rect.height * dpr) {
@@ -32633,9 +32625,24 @@ ${text.substring(0, 500)}${text.length > 500 ? '...' : ''}`,
           }
         }
 
-        // 获取文本向量
-        async function fetchEmbedding(inputData, config) {
-          const provider = config.provider || 'api';
+          // 获取文本向量
+          async function fetchEmbedding(inputData, config) {
+            // === 【修复开始】iOS/移动端防崩溃保护 ===
+            let provider = config.provider || 'api';
+            
+            // 检测移动端 (包含 iOS 和 Android)
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (provider === 'local' && isMobile) {
+              console.warn("⚠️ [防崩溃保护] 检测到移动端环境，强制禁用本地 Transformers.js 模型，已自动切换回 API 模式。");
+              provider = 'api'; // 强制覆写为 API 模式
+              
+              // 额外的友好提示：如果切回 API 模式但没填 Key，抛出明确错误
+              if (!config.apiUrl || !config.apiKey) {
+                  throw new Error("手机端无法运行本地模型（内存不足会导致崩溃），系统已自动尝试切换至 API 模式，但未检测到 API 配置。请在设置中填写 Embedding API URL 和 Key。");
+              }
+            }
+            // === 【修复结束】 ===  
           if (provider === 'local') {
             const modelName = config.localModel || 'Xenova/bge-small-zh-v1.5';
             if (!window.pipeline) {
@@ -63087,7 +63094,9 @@ ${smallSummary}
           }
           zoom(factor, centerX, centerY) {
             if (centerX === undefined || centerY === undefined) {
-              const dpr = window.devicePixelRatio || 1;
+              // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+              const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
               centerX = this.canvas.width / dpr / 2;
               centerY = this.canvas.height / dpr / 2;
             }
@@ -63102,7 +63111,9 @@ ${smallSummary}
           resize() {
             const parent = this.canvas.parentElement;
             if (!parent) return;
-            const dpr = window.devicePixelRatio || 1;
+            // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
             const rect = parent.getBoundingClientRect();
             if (rect.width === 0 || rect.height === 0) return;
             this.canvas.width = rect.width * dpr;
@@ -63113,7 +63124,9 @@ ${smallSummary}
           }
           draw() {
             const ctx = this.ctx;
-            const dpr = window.devicePixelRatio || 1;
+            // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
             const width = this.canvas.width / dpr;
             const height = this.canvas.height / dpr;
 
@@ -63317,7 +63330,9 @@ ${smallSummary}
             window.addEventListener('mousemove', e => {
               if (!this.isDragging) return;
               e.preventDefault();
-              const dpr = window.devicePixelRatio || 1;
+              // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+              const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+              const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
               const dx = (e.clientX - this.lastX) / dpr;
               const dy = (e.clientY - this.lastY) / dpr;
               this.offsetX += dx / this.scale;
@@ -63350,7 +63365,9 @@ ${smallSummary}
               e => {
                 e.preventDefault();
                 if (e.touches.length === 1 && this.isDragging) {
-                  const dpr = window.devicePixelRatio || 1;
+                  // 检测是否为移动端，如果是，强制 dpr 为 1，否则保持原样
+                  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                  const dpr = isMobile ? 1 : (window.devicePixelRatio || 1);
                   const dx = (e.touches[0].clientX - this.lastX) / dpr;
                   const dy = (e.touches[0].clientY - this.lastY) / dpr;
                   this.offsetX += dx / this.scale;
@@ -63762,9 +63779,13 @@ ${smallSummary}
             if (rect.width > 0) {
               this.width = rect.width;
               this.height = rect.height;
-              this.canvas.width = this.width * window.devicePixelRatio;
-              this.canvas.height = this.height * window.devicePixelRatio;
-              this.ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+              // 简单粗暴的修复：在 resize 方法内部，将 window.devicePixelRatio 替换为 1
+              // 或者手动检测：
+              const pixelRatio = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : (window.devicePixelRatio || 1);
+              
+              this.canvas.width = this.width * pixelRatio;
+              this.canvas.height = this.height * pixelRatio;
+              this.ctx.scale(pixelRatio, pixelRatio);
             }
           }
 
